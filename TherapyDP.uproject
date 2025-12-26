@@ -1,6 +1,6 @@
 {
   "FileVersion": 3,
-  "EngineAssociation": "5.4",
+  "EngineAssociation": "5.7",
   "Category": "Games",
   "Description": "Therapy Deliberate Practice Studio",
   "Modules": [
@@ -13,7 +13,7 @@
   "Plugins": [
     { "Name": "EnhancedInput", "Enabled": true },
     { "Name": "CommonUI", "Enabled": true },
-    { "Name": "Metahuman", "Enabled": true },
+    { "Name": "MetaHuman", "Enabled": true },
     { "Name": "ControlRig", "Enabled": true }
   ]
 }

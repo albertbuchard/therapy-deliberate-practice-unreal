@@ -12,6 +12,7 @@ UMetaHumanAffectControllerComponent::UMetaHumanAffectControllerComponent()
 void UMetaHumanAffectControllerComponent::BeginPlay()
 {
     Super::BeginPlay();
+    CacheAnimInstances();
 }
 
 void UMetaHumanAffectControllerComponent::ApplyReaction(const FTherapyPatientReaction& Reaction)
@@ -41,6 +42,11 @@ void UMetaHumanAffectControllerComponent::TickComponent(float DeltaTime, ELevelT
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+    if (!BodyAnimInstance.IsValid() && !FaceAnimInstance.IsValid())
+    {
+        CacheAnimInstances();
+    }
+
     if (bListening)
     {
         ActiveEmotion = FGameplayTag::RequestGameplayTag(TEXT("neutral"), false);
@@ -66,19 +72,111 @@ void UMetaHumanAffectControllerComponent::TickComponent(float DeltaTime, ELevelT
 
 void UMetaHumanAffectControllerComponent::UpdateAnimInstance(float DeltaTime)
 {
+    if (BodyAnimInstance.IsValid())
+    {
+        ApplyToAnimInstance(BodyAnimInstance.Get());
+    }
+
+    if (FaceAnimInstance.IsValid() && FaceAnimInstance.Get() != BodyAnimInstance.Get())
+    {
+        ApplyToAnimInstance(FaceAnimInstance.Get());
+    }
+}
+
+float UMetaHumanAffectControllerComponent::GetEmotionPriority(const FGameplayTag& Tag) const
+{
+    if (!EmotionMap)
+    {
+        return 0.0f;
+    }
+    if (const int32* Priority = EmotionMap->EmotionPriority.Find(Tag))
+    {
+        return static_cast<float>(*Priority);
+    }
+    return 0.0f;
+}
+
+void UMetaHumanAffectControllerComponent::CacheAnimInstances()
+{
     AActor* Owner = GetOwner();
     if (!Owner)
     {
         return;
     }
 
-    USkeletalMeshComponent* Mesh = Owner->FindComponentByClass<USkeletalMeshComponent>();
-    if (!Mesh)
+    if (!BodyMesh)
     {
-        return;
+        BodyMesh = ResolveMeshByName(BodyMeshComponentName);
     }
 
-    UTherapyPatientAnimInstance* AnimInstance = Cast<UTherapyPatientAnimInstance>(Mesh->GetAnimInstance());
+    if (!FaceMesh)
+    {
+        FaceMesh = ResolveMeshByName(FaceMeshComponentName);
+    }
+
+    TArray<USkeletalMeshComponent*> Meshes;
+    Owner->GetComponents(Meshes);
+
+    for (USkeletalMeshComponent* Mesh : Meshes)
+    {
+        if (!Mesh)
+        {
+            continue;
+        }
+
+        const FString MeshName = Mesh->GetName();
+        if (!BodyMesh && MeshName.Contains(TEXT("Body"), ESearchCase::IgnoreCase))
+        {
+            BodyMesh = Mesh;
+        }
+        if (!FaceMesh && MeshName.Contains(TEXT("Face"), ESearchCase::IgnoreCase))
+        {
+            FaceMesh = Mesh;
+        }
+    }
+
+    if (!BodyMesh && Meshes.Num() > 0)
+    {
+        BodyMesh = Meshes[0];
+    }
+
+    if (!FaceMesh && Meshes.Num() > 1)
+    {
+        FaceMesh = Meshes[1];
+    }
+
+    BodyAnimInstance = BodyMesh ? Cast<UTherapyPatientAnimInstance>(BodyMesh->GetAnimInstance()) : nullptr;
+    FaceAnimInstance = FaceMesh ? Cast<UTherapyPatientAnimInstance>(FaceMesh->GetAnimInstance()) : nullptr;
+}
+
+USkeletalMeshComponent* UMetaHumanAffectControllerComponent::ResolveMeshByName(const FName& ComponentName) const
+{
+    if (ComponentName.IsNone())
+    {
+        return nullptr;
+    }
+
+    AActor* Owner = GetOwner();
+    if (!Owner)
+    {
+        return nullptr;
+    }
+
+    TArray<USkeletalMeshComponent*> Meshes;
+    Owner->GetComponents(Meshes);
+    for (USkeletalMeshComponent* Mesh : Meshes)
+    {
+        if (Mesh && Mesh->GetFName() == ComponentName)
+        {
+            return Mesh;
+        }
+    }
+
+    return nullptr;
+}
+
+void UMetaHumanAffectControllerComponent::ApplyToAnimInstance(UTherapyPatientAnimInstance* AnimInstance) const
+{
     if (!AnimInstance)
     {
         return;
@@ -95,17 +193,4 @@ void UMetaHumanAffectControllerComponent::UpdateAnimInstance(float DeltaTime)
     AnimInstance->ActionBlend = ActionBlend;
     AnimInstance->BlinkRate = Tuning ? Tuning->BlinkRate : AnimInstance->BlinkRate;
     AnimInstance->GazeArousal = Tuning ? Tuning->GazeArousal : AnimInstance->GazeArousal;
-}
-
-float UMetaHumanAffectControllerComponent::GetEmotionPriority(const FGameplayTag& Tag) const
-{
-    if (!EmotionMap)
-    {
-        return 0.0f;
-    }
-    if (const int32* Priority = EmotionMap->EmotionPriority.Find(Tag))
-    {
-        return static_cast<float>(*Priority);
-    }
-    return 0.0f;
 }
