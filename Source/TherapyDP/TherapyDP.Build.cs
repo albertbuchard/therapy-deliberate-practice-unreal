@@ -24,6 +24,6 @@ public class TherapyDP : ModuleRules
             }
         );
 
-        PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+        PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore", "AssetRegistry" });
     }
 }

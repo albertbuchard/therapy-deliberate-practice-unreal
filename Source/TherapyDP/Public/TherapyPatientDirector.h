@@ -3,30 +3,32 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "TherapyTypes.h"
-#include "TherapyPatientReactionRouter.generated.h"
+#include "TherapyPatientDirector.generated.h"
 
 class UMetaHumanAffectControllerComponent;
 class UTherapySessionSubsystem;
+class UTherapyPatientRegistrySubsystem;
+class UTherapyPatientDefinition;
 
 UCLASS(BlueprintType, Blueprintable)
-class THERAPYDP_API ATherapyPatientReactionRouter : public AActor
+class THERAPYDP_API ATherapyPatientDirector : public AActor
 {
     GENERATED_BODY()
 
 public:
-    ATherapyPatientReactionRouter();
+    ATherapyPatientDirector();
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="TherapyDP")
-    TObjectPtr<AActor> PatientActor;
+    TObjectPtr<AActor> PatientActorOverride;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="TherapyDP")
-    FName PatientActorTag = TEXT("TherapyPatient");
+    bool bAutoSpawnSelectedPatient = true;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="TherapyDP")
-    TSubclassOf<AActor> PatientActorClass;
+    bool bDestroyPreviousPatientOnSelection = true;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="TherapyDP")
-    bool bAutoFindPatient = true;
+    FTransform PatientSpawnTransform;
 
 protected:
     virtual void BeginPlay() override;
@@ -36,10 +38,23 @@ private:
     UFUNCTION()
     void HandleEvaluationReady(const FTherapyEvaluationResult& Result);
 
+    UFUNCTION()
+    void HandleSessionStateChanged(ETherapySessionState NewState);
+
+    UFUNCTION()
+    void HandlePatientSelectionChanged(UTherapyPatientDefinition* NewPatient);
+
+    void RefreshPatientActor();
     void CachePatientComponent();
 
     UPROPERTY()
     UTherapySessionSubsystem* SessionSubsystem = nullptr;
+
+    UPROPERTY()
+    UTherapyPatientRegistrySubsystem* PatientRegistry = nullptr;
+
+    UPROPERTY()
+    TObjectPtr<AActor> ActivePatientActor;
 
     TWeakObjectPtr<UMetaHumanAffectControllerComponent> PatientAffectComponent;
 };
