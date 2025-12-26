@@ -7,6 +7,11 @@
 #include "GameplayTagContainer.h"
 #include "MetaHumanAffectControllerComponent.generated.h"
 
+class UPoseAsset;
+class UAnimSequenceBase;
+class USkeletalMeshComponent;
+class UTherapyPatientAnimInstance;
+
 USTRUCT(BlueprintType)
 struct FTherapyEmotionTuning
 {
@@ -42,6 +47,12 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TMap<FGameplayTag, FGameplayTag> ActionToOverlay;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    TMap<FGameplayTag, TSoftObjectPtr<UPoseAsset>> EmotionPoseAssets;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    TMap<FGameplayTag, TSoftObjectPtr<UAnimSequenceBase>> ActionAdditiveSequences;
 };
 
 UCLASS(ClassGroup=(TherapyDP), meta=(BlueprintSpawnableComponent))
@@ -64,6 +75,18 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     float GlobalBlendSpeed = 2.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="MetaHuman")
+    TObjectPtr<USkeletalMeshComponent> BodyMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="MetaHuman")
+    TObjectPtr<USkeletalMeshComponent> FaceMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="MetaHuman")
+    FName BodyMeshComponentName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="MetaHuman")
+    FName FaceMeshComponentName;
+
 protected:
     virtual void BeginPlay() override;
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -71,9 +94,15 @@ protected:
 private:
     void UpdateAnimInstance(float DeltaTime);
     float GetEmotionPriority(const FGameplayTag& Tag) const;
+    void CacheAnimInstances();
+    USkeletalMeshComponent* ResolveMeshByName(const FName& ComponentName) const;
+    void ApplyToAnimInstance(UTherapyPatientAnimInstance* AnimInstance) const;
 
     UPROPERTY()
     FTherapyPatientReaction CurrentReaction;
+
+    TWeakObjectPtr<UTherapyPatientAnimInstance> BodyAnimInstance;
+    TWeakObjectPtr<UTherapyPatientAnimInstance> FaceAnimInstance;
 
     FGameplayTag ActiveEmotion;
     FGameplayTag ActiveAction;
