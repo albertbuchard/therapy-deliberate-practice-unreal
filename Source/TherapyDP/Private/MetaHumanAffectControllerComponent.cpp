@@ -76,6 +76,12 @@ void UMetaHumanAffectControllerComponent::SetPerEmotionTuning(FGameplayTag Emoti
     UpdateCurveParamsFromMap();
 }
 
+void UMetaHumanAffectControllerComponent::ClearRuntimeTuningOverrides()
+{
+    RuntimeTuningOverrides.Reset();
+    UpdateCurveParamsFromMap();
+}
+
 TArray<float> UMetaHumanAffectControllerComponent::GetEmotionWeights() const
 {
     TArray<float> Weights = CurveSolver.GetWeights();

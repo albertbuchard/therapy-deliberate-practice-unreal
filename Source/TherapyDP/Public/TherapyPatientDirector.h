@@ -10,6 +10,8 @@ class UTherapySessionSubsystem;
 class UTherapyPatientRegistrySubsystem;
 class UTherapyPatientDefinition;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTherapyActiveAffectControllerChanged, UMetaHumanAffectControllerComponent*, NewController);
+
 UCLASS(BlueprintType, Blueprintable)
 class THERAPYDP_API ATherapyPatientDirector : public AActor
 {
@@ -17,6 +19,9 @@ class THERAPYDP_API ATherapyPatientDirector : public AActor
 
 public:
     ATherapyPatientDirector();
+
+    UFUNCTION(BlueprintCallable)
+    UMetaHumanAffectControllerComponent* GetActiveAffectController() const { return PatientAffectComponent.Get(); }
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="TherapyDP")
     TObjectPtr<AActor> PatientActorOverride;
@@ -29,6 +34,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="TherapyDP")
     FTransform PatientSpawnTransform;
+
+    UPROPERTY(BlueprintAssignable, Category="TherapyDP")
+    FTherapyActiveAffectControllerChanged OnActiveAffectControllerChanged;
 
 protected:
     virtual void BeginPlay() override;

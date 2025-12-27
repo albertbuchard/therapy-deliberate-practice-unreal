@@ -132,6 +132,9 @@ public:
     void SetPerEmotionTuning(FGameplayTag EmotionTag, float RiseSeconds, float FallSeconds, float MaxChangeRate);
 
     UFUNCTION(BlueprintCallable)
+    void ClearRuntimeTuningOverrides();
+
+    UFUNCTION(BlueprintCallable)
     TArray<float> GetEmotionWeights() const;
 
     UFUNCTION(BlueprintCallable)

@@ -12,9 +12,12 @@ This folder stores content assets (maps, MetaHumans, UI widgets).
 
 - `/Game/TherapyDP/Maps/TherapyDP_Office`
 - `/Game/TherapyDP/Characters/MetaHumanPatient`
+- `/Game/TherapyDP/Characters/Patients` (patient definitions)
 - `/Game/TherapyDP/UI/WBP_TherapyLibrary`
 - `/Game/TherapyDP/UI/WBP_TherapyPractice`
 - `/Game/TherapyDP/UI/WBP_TherapyHistory`
+- `/Game/TherapyDP/UI/WBP_TherapyOverlay`
+- `/Game/TherapyDP/UI/WBP_TherapyAffectDebug`
 - `/Game/TherapyDP/Data/DA_EmotionMap`
 
 Refer to README for detailed editor setup.
@@ -61,17 +64,31 @@ Use `DA_EmotionMap` as the single source of tuning + asset mapping:
 4. Ensure `SetListening(true)` forces the neutral pose (EmotionTag = neutral, ActionTag cleared).
 
 ### 5) Level Wiring (C++ Route)
-1. Place **BP_MetaHumanPatient** in `/Game/TherapyDP/Maps/TherapyDP_Office`.
-2. Add a new actor: `TherapyPatientReactionRouter` (C++ class).
-3. In the router:
-   - Set **Patient Actor** to `BP_MetaHumanPatient` (or leave empty and rely on the `TherapyPatient` tag).
-   - Optionally set **Patient Actor Class** to `BP_MetaHumanPatient` to auto-find.
+1. Place **ATherapyPatientDirector** in `/Game/TherapyDP/Maps/TherapyDP_Office`.
+2. Create patient definitions in `/Game/TherapyDP/Characters/Patients`:
+   - Set **DisplayName**, **PatientActorClass**, and **EmotionMap**.
+3. Ensure **bAutoSpawnSelectedPatient** is enabled on the director (default).
+4. Do not rely on a placed patient actor or **PatientActorOverride** unless you want to override the registry.
 
-### 6) Level Wiring (Blueprint-Only Alternative)
-1. Create a blueprint actor (e.g., `BP_TherapySessionBinder`).
-2. On `BeginPlay`:
-   - Get `Game Instance` → `Get Subsystem (TherapySessionSubsystem)`.
-   - Bind to `OnEvaluationReady`.
-3. In the bound event:
-   - `Get All Actors With Tag` → `TherapyPatient`.
-   - Get `MetaHumanAffectControllerComponent` and call `ApplyReaction(Result.PatientReaction)`.
+### 6) UI Overlay Wiring (CommonUI)
+1. Create `/Game/TherapyDP/UI/WBP_TherapyOverlay` (parent: `UTherapyOverlayWidget`).
+2. Add:
+   - `CommonTabListWidgetBase` named **TopNavTabs**.
+   - `CommonActivatableWidgetSwitcher` named **ContentSwitcher**.
+3. Configure the overlay defaults:
+   - **TabButtonClass**: a CommonUI button style for the top nav.
+   - **LibraryWidgetClass** → `WBP_TherapyLibrary`.
+   - **PracticeWidgetClass** → `WBP_TherapyPractice`.
+   - **HistoryWidgetClass** → `WBP_TherapyHistory`.
+   - **DebugWidgetClass** → `WBP_TherapyAffectDebug`.
+4. Create `/Game/TherapyDP/UI/WBP_TherapyAffectDebug` (parent: `UTherapyAffectDebugWidget`) and build:
+   - Patient dropdown list (bind to `GetPatientDisplayNames`, `GetSelectedPatientIndex`, `SetSelectedPatientIndex`).
+   - Refresh button → `RefreshPatientRegistry`.
+   - Reaction readout (bind to `GetCurrentTargetReaction`).
+   - Emotion weights list (bind to `GetCurrentWeights` and `GetOrderedEmotionTags`).
+   - Speed multiplier slider (bind to `ApplyGlobalSpeed`, initialize from `GetCurrentSpeedMultiplier`).
+   - Per-emotion sliders for rise/fall/max change rate (call `ApplyPerEmotionSpeed`).
+   - Preset buttons → `ApplyPacingPreset`.
+   - Reset button → `ClearRuntimeTuningOverrides`.
+5. Spawn the overlay:
+   - Set your GameMode HUD class to `ATherapyHudController`, and assign **OverlayWidgetClass** to `WBP_TherapyOverlay`.
