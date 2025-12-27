@@ -49,6 +49,8 @@ void ATherapyPatientDirector::EndPlay(const EEndPlayReason::Type EndPlayReason)
         PatientRegistry->OnPatientSelectionChanged.RemoveDynamic(this, &ATherapyPatientDirector::HandlePatientSelectionChanged);
     }
 
+    OnActiveAffectControllerChanged.Broadcast(nullptr);
+
     Super::EndPlay(EndPlayReason);
 }
 
@@ -139,7 +141,12 @@ void ATherapyPatientDirector::RefreshPatientActor()
 void ATherapyPatientDirector::CachePatientComponent()
 {
     AActor* TargetActor = PatientActorOverride ? PatientActorOverride : ActivePatientActor;
-    PatientAffectComponent = TargetActor ? TargetActor->FindComponentByClass<UMetaHumanAffectControllerComponent>() : nullptr;
+    UMetaHumanAffectControllerComponent* NewComponent = TargetActor ? TargetActor->FindComponentByClass<UMetaHumanAffectControllerComponent>() : nullptr;
+    if (PatientAffectComponent.Get() != NewComponent)
+    {
+        PatientAffectComponent = NewComponent;
+        OnActiveAffectControllerChanged.Broadcast(PatientAffectComponent.Get());
+    }
 
     if (PatientAffectComponent.IsValid() && PatientRegistry)
     {
